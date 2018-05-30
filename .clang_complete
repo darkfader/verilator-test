@@ -1,0 +1,4 @@
+-I.
+-Iobj_dir
+-I/usr/local/share/verilator/include
+-DVM_TRACE
