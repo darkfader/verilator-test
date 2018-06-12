@@ -12,6 +12,8 @@ module top(
     assign dbg0 = 0;
     assign dbg1 = 0;
 
+    assign bus_ack = bus_cyc;	// always access spram
+
 	cpu cpu(
 		.rst(rst),
 		.clk(clk),
@@ -27,7 +29,7 @@ module top(
 		.addr(bus_addr),
 		.din(bus_wrdata),
 		.wren(bus_write),
-		.cs(1),
+		.cs(bus_cyc),
 		.dout(bus_rddata));
 
 endmodule

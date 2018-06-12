@@ -30,6 +30,7 @@ module sb_spram256ka(
                 dout <= spram_data[addr];
             end
         end else begin
+            $display("[%0t] idle mem", $time);
             dout <= 'X;
         end
     end

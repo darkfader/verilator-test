@@ -1,37 +1,39 @@
 // `define IR 15
 
-module cpu #( parameter ADDR_WIDTH = 14 ) (
+module cpu #( ADDR_WIDTH = 14, MEM_WIDTH = 16, REG_WIDTH = 16 ) (
     // Misc
     input         rst,
     input         clk,
 
     // bus master
     output [ADDR_WIDTH-1:0] bus_addr,
-    output [15:0] bus_wrdata,
-    input  [15:0] bus_rddata,
+    output [MEM_WIDTH-1:0] bus_wrdata,
+    input  [MEM_WIDTH-1:0] bus_rddata,
     output        bus_cyc,
     output        bus_write,
     input         bus_ack);
 
 	// 
-	reg [31:0] registers [0:15] = '{ default:32'3 };
+	reg [31:0] registers [0:REG_WIDTH-1] = '{ default:32'hAAAAAAAA };
 	reg [3:0] state;
 
-	reg [15:0] instruction;
+	reg [REG_WIDTH-1:0] instruction;
 
 	// typedef
 	enum reg [1:0] { FETCH, DECODE, LOAD, STORE } decode_state;
 
-	localparam MR = 14;
-	localparam IR = 15;
+	localparam ACCUM = 0;
+	localparam INDEX = 14;
+	localparam PCNTR = 15;
 
-	typedef logic [ADDR_WIDTH-1:0] HALF_WORD;
+	typedef logic [ADDR_WIDTH-1:0] ADDR;
+	typedef logic [MEM_WIDTH-1:0] MEM;
 
 	always @(*) begin
 		case (decode_state)
 			FETCH: begin
 				bus_write = 0;
-				bus_addr = HALF_WORD'(registers[IR]);
+				bus_addr = ADDR'(registers[PCNTR]);
 				bus_cyc = 1;
 			end
 			DECODE: begin
@@ -41,12 +43,13 @@ module cpu #( parameter ADDR_WIDTH = 14 ) (
 			end
 			LOAD: begin
 				bus_write = 0;
-				bus_addr = HALF_WORD'(registers[MR]);
+				bus_addr = ADDR'(registers[INDEX]);
 				bus_cyc = 1;
 			end
 			STORE: begin
 				bus_write = 1;
-				bus_addr = HALF_WORD'(registers[MR]);
+				bus_addr = ADDR'(registers[INDEX]);
+				bus_wrdata = MEM'(registers[ACCUM]);
 				bus_cyc = 1;
 			end
 		endcase
@@ -54,7 +57,7 @@ module cpu #( parameter ADDR_WIDTH = 14 ) (
 
 	always @(posedge clk) begin
 		if (rst) begin
-			registers[IR] <= 0;
+			registers[PCNTR] <= 0;
 		end else begin
 
 			case (decode_state)
@@ -64,9 +67,10 @@ module cpu #( parameter ADDR_WIDTH = 14 ) (
 						instruction <= bus_rddata;
 					end
 					decode_state <= DECODE;
-					registers[IR] <= registers[IR] + 1;
+					registers[PCNTR] <= registers[PCNTR] + 1;
 				end
 				DECODE: begin
+        			$display("[%0t] decode...", $time);
 					decode_state <= LOAD;
 				end
 				LOAD: begin
