@@ -47,21 +47,25 @@ VERILATOR_ROOT ?= /usr/local/share/verilator
 .PHONY: run
 run: obj_dir/sim_main     # obj_dir/V$(TOPMODULE)
 	-killall gtkwave-bin 2>/dev/null
-	gtimeout 10.0 $< | grep -F -e '' -e 'Error' | head -c 1000000
-	( sleep 1; osascript -e 'tell application "gtkwave" to activate' ) &
+	gtimeout 10.0 $< | grep -a -F -e '' -e 'Error' | head -c 1000000
+	# ( for i in 1 2 3; do sleep 0.5; osascript -e 'tell application "gtkwave" to activate' 2>/dev/null; done ) &
+	( for i in 1 2 3; do sleep 0.5; open -a gtkwave 2>/dev/null; done ) &
 	cat vlt_dump.vcd | "/Applications/gtkwave.app/Contents/MacOS/gtkwave-bin" -v $(GTKW) 2>/dev/null &
 
 .PHONY: clean
 clean:
 	-rm -rf obj_dir
 
-# .SECONDARY:
-
-# DIR := $(CURDIR)
-
 abc.v: sine.bin
 
+# top.v: cpu.v sb_spram256ka.v
+
+sb_spram256ka.v: spram.bin
+
 sine.bin: sine
+	./$< > $@
+
+spram.bin: spram
 	./$< > $@
 
 sine: sine.c
@@ -69,16 +73,18 @@ sine: sine.c
 obj_dir/V%__ALL.a: obj_dir/V%.mk obj_dir/V%.cpp
 	make -C obj_dir -f $(notdir $<)
 
-obj_dir/V%.mk obj_dir/V%.cpp obj_dir/V%.h: %.v
+obj_dir/V%.mk obj_dir/V%.cpp obj_dir/V%.h: %.v cpu.v sb_spram256ka.v
 	verilator $(VERILATOR_FLAGS) --cc $<
 
-obj_dir/sim_main: obj_dir/sim_main.o obj_dir/Vabc__ALL.a obj_dir/verilated.o obj_dir/verilated_cov.o obj_dir/verilated_vcd_c.o
+# obj_dir/sim_main: obj_dir/sim_main.o obj_dir/Vabc__ALL.a obj_dir/verilated.o obj_dir/verilated_cov.o obj_dir/verilated_vcd_c.o
+obj_dir/sim_main: obj_dir/sim_main.o obj_dir/Vtop__ALL.a obj_dir/verilated.o obj_dir/verilated_cov.o obj_dir/verilated_vcd_c.o
 	g++ -o $@ $+
 
 obj_dir/sim_main.o: sim_main.cpp obj_dir
 	g++ -c -I obj_dir -I $(VERILATOR_ROOT)/include -DVM_TRACE -o $@ $<
 
-sim_main.cpp: obj_dir/Vabc.h
+# sim_main.cpp: obj_dir/Vabc.h
+sim_main.cpp: obj_dir/Vtop.h
 
 obj_dir/verilated.o: $(VERILATOR_ROOT)/include/verilated.cpp
 	g++ -c -o $@ $+

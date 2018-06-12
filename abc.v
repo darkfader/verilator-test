@@ -11,6 +11,7 @@ module abc (
 
 
     wire [7:0] sine [0:3];
+    reg [7:0] sine_test;
 
     // assign blaa = { 1'0 };
 
@@ -73,6 +74,10 @@ module abc (
                 3: video = 1;
             endcase
         endcase
+    end
+
+    always @(posedge clk) begin
+        sine_test <= sine[subpixel_r];
     end
 
     reg [8:0] pixel_clock_r = 0;

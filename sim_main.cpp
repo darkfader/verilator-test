@@ -1,7 +1,8 @@
 #include <ios>
 #include <string>
 // #include "Vour.h"
-#include "Vabc.h"
+// #include "Vabc.h"
+#include "Vtop.h"
 #include <verilated.h>
 
 using std::string;
@@ -86,6 +87,12 @@ public:
     }
 
     virtual void reset(void) {
+        m_core->clk = 0;
+        m_core->rst = 1;
+        this->tick();
+        m_core->rst = 0;
+
+        m_tickcount = 0;
     }
 
     virtual void tick(void) {
@@ -119,21 +126,16 @@ public:
     }
 };
 
+#if 0
+
 class TestBench_ABC : public TestBench<Vabc> {
 public:
     virtual void reset(void) {
-        m_core->clk = 0;
-        m_core->rst = 1;
-        m_core->a   = 0;
-        this->tick();
-        m_core->rst = 0;
-
-        m_tickcount = 0;
+        m_core->a = 0;
+        TestBench::reset();
     }
 
     virtual void tick(void) {
-        // Request that the testbench toggle the clock within
-        // Verilator
         TestBench<Vabc>::tick();
 
         // if (m_core->b == 0) {
@@ -165,6 +167,18 @@ public:
         // }
     }
 };
+#endif
+
+class TestBench_Top : public TestBench<Vtop> {
+public:
+    virtual void reset(void) {
+        TestBench::reset();
+    }
+
+    virtual void tick(void) {
+        TestBench::tick();
+    }
+};
 
 int main(int argc, char** argv, char** env) {
     Verilated::commandArgs(argc, argv);
@@ -180,7 +194,8 @@ int main(int argc, char** argv, char** env) {
 
     Verilated::commandArgs(argc, argv);
 
-    TestBench_ABC* tb = new TestBench_ABC();
+    // TestBench_ABC* tb = new TestBench_ABC();
+    TestBench_Top* tb = new TestBench_Top();
 
     tb->reset();
 
